@@ -3,7 +3,7 @@
 
 import os
 import django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.backend.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
 django.setup()
 import sys
 import time
@@ -78,7 +78,8 @@ while True:
 
         # Run anti-spoofing detection
         label, value = test(face_img, model_dir, device_id)
-        if label == 2 and value > 0.99:  # Only accept real faces
+        print(label)
+        if label == 2 and value > 0.5:  # Only accept real faces
             print("Real face detected, proceeding with recognition.")
 
             # Run face recognition
