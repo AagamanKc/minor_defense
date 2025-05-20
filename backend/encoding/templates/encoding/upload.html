@@ -1,25 +1,181 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Team Naayaa</title>
+  <style>
+    /* Import Google Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
 
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 40px;
+    }
+
+    .page-title {
+      text-align: center;
+      font-size: 36px;
+      font-weight: 700;
+      margin-bottom: 40px;
+      background: linear-gradient(90deg, #b44755,#4dcd70, #000000);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.2);
+      max-width: 90%;
+    }
+
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 50px;
+      justify-content: center;
+      width: 100%;
+      max-width: 1200px;
+    }
+
+    .main-section {
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 500px;
+      transition: transform 0.3s ease-in-out;
+    }
+
+    h1 {
+      font-size: 32px;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 20px;
+      background: linear-gradient(90deg, #ff6f61, #e53935);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+    }
+
+    form input, form select, form textarea {
+      font-size: 16px;
+      padding: 10px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      width: 100%;
+    }
+
+    button {
+      background: #ff6f61;
+      color: white;
+      font-size: 18px;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background: #e53935;
+    }
+
+    .alert {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      background-color: #d4edda;
+      color: #155724;
+      font-size: 16px;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    .team-card {
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+      max-width: 300px;
+      width: 100%;
+    }
+
+    .team-card h2 {
+      font-size: 24px;
+      margin-bottom: 20px;
+      color: #ff6f61;
+      text-align: center;
+      border-bottom: 2px solid #ff6f61;
+      padding-bottom: 10px;
+    }
+
+    .team-card ul {
+      list-style-type: none;
+      padding: 0;
+      font-size: 18px;
+      color: #555;
+    }
+
+    .team-card ul li {
+      padding: 10px 0;
+      transition: all 0.3s ease-in-out;
+    }
+
+    .team-card ul li:hover {
+      color: #ff6f61;
+      font-weight: 600;
+      transform: translateX(5px);
+    }
+  </style>
 </head>
 <body>
-    <!-- Display success message if any -->
-    {% if messages %}
-        {% for message in messages %}
-            
-            <div class="alert alert-success">{{ message }}</div>
-        {% endfor %}
-    {% endif %}
 
-    <form method="POST" enctype="multipart/form-data">
+  <!-- Page Title -->
+  <div class="page-title">
+    Facial Recognition Based Smart Door Locking System
+  </div>
+
+  <!-- Main Content Area -->
+  <div class="container">
+
+    <!-- Form Section -->
+    <div class="main-section">
+      <h1>Team Naayaa</h1>
+
+      <form method="POST" enctype="multipart/form-data">
         {% csrf_token %}
         {{ form.as_p }}
-        <h1>team naayaa</h1>
         <button type="submit">Save</button>
-    </form>
+      </form>
+
+      <!-- Display success message if any -->
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    </div>
+
+    <!-- Team Members Section -->
+    <div class="team-card">
+      <h2>Team Members</h2>
+      <ul>
+        <li>Aagaman KC</li>
+        <li>Ajay Panta</li>
+        <li>Chandra Kamal Singh</li>
+        <li>Gaurav Bhujel</li>
+      </ul>
+    </div>
+
+  </div>
 </body>
 </html>

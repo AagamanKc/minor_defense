@@ -6,6 +6,8 @@ import face_recognition
 import requests
 import random
 import asyncio
+import time  # ✅ For timing
+
 from telegram import Bot
 from django.conf import settings
 from django.http import JsonResponse
@@ -26,6 +28,7 @@ def generate_unique_otp():
 
 your_telegram_bot_token = "7878300541:AAHF2aF3v2cxXkePujiMNsFv3FCPQu0LT5A"
 chat_id = 6328640036
+
 async def send_telegram_message(otp, chat_id):
     """Send OTP to a specific Telegram user."""
     try:
@@ -37,7 +40,7 @@ async def send_telegram_message(otp, chat_id):
         print(f"❌ Error sending OTP: {e}")
 
 def load_encodings():
-    """Load all face encodings from the database."""
+    """Load all f   ace encodings from the database."""
     persons = Person.objects.all()
     encodeListKnown = []
     studentIds = []
@@ -46,6 +49,156 @@ def load_encodings():
         studentIds.append(person.name)
     return encodeListKnown, studentIds
 
+# ✅ Global variable to track OTP timing
+last_otp_time = 0  # Initialize global OTP timestamp
+
+@csrf_exempt
+def face_recognition_api(request):
+    """Continuously capture images from ESP32 and process face recognition."""
+    global last_otp_time  # ✅ Use global for shared timestamp
+
+    try:
+        encodeListKnown, studentIds = load_encodings()  # Load known encodings once
+        check_count = 0  # Counter to track the number of face checks
+
+        while True:
+            check_count += 1  # Increment count every loop iteration
+
+            # Fetch latest frame from ESP32
+            print("connection error if no scanned")
+            response = requests.get(ESP32_STREAM_URL)
+            print("conncetion established")
+            if response.status_code != 200:
+                return JsonResponse({"status": "error", "message": "Failed to fetch frame from ESP32 camera."})
+
+            # Convert response bytes to OpenCV image
+            image_array = np.asarray(bytearray(response.content), dtype=np.uint8)
+            frame = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
+
+            if frame is None:
+                continue  # Skip if frame couldn't be decoded
+
+            # Resize and convert to RGB for face recognition
+            imgS = cv2.resize(frame, (0, 0), None, 0.25, 0.25)
+            imgS = cv2.cvtColor(imgS, cv2.COLOR_BGR2RGB)
+
+            faceCurrFrame = face_recognition.face_locations(imgS)
+            encodeCurrFrame = face_recognition.face_encodings(imgS, faceCurrFrame)
+
+            print("scanned")
+            if not faceCurrFrame:
+                print("No face detected.")
+                continue
+
+            for encodeFace, faceLoc in zip(encodeCurrFrame, faceCurrFrame):
+                # Extract the face region from the original image
+                top, right, bottom, left = [v * 4 for v in faceLoc]  # Scale back up
+                face_img = frame[top:bottom, left:right]  # Crop the detected face
+
+                # Run anti-spoofing check
+                label, value = test(frame, model_dir, device_id)
+                print(f"label= {label}, value= {value}")
+
+                if label != 1 and value > 0.6:
+                    current_time = time.time()
+                    if current_time - last_otp_time >= 30:  # ✅ Send OTP only if 30 sec passed
+                        last_otp_time = current_time  # ✅ Update last sent time
+                        new_otp = generate_unique_otp()
+                        asyncio.run(send_telegram_message(new_otp, chat_id))
+                        response_data = {
+                            "status": "unreliable picture",
+                            "signal": 0,
+                            "message": "Fake face detected!",
+                            "checks": check_count,
+                            "otp": new_otp
+                        }
+                        print("Sending response:", response_data)
+                        return JsonResponse(response_data)
+                
+                # Run face recognition
+                matches = face_recognition.compare_faces(encodeListKnown, encodeFace)
+                faceDis = face_recognition.face_distance(encodeListKnown, encodeFace)
+                matchIndex = np.argmin(faceDis)
+
+                if matches[matchIndex]:
+                    return JsonResponse({"status": "success", "signal": 1, "message": f"✅ Known face: {studentIds[matchIndex]}", "checks": check_count})
+                else:
+                    current_time = time.time()
+                    if current_time - last_otp_time >= 30:  # ✅ 30s gap for unknown face too
+                        last_otp_time = current_time
+                        new_otp = generate_unique_otp()
+                        asyncio.run(send_telegram_message(new_otp, chat_id))
+                        response_data = {
+                            "status": "unknown face",
+                            "signal": 0,
+                            "message": "unknown face!",
+                            "otp": new_otp
+                        }
+                        return JsonResponse(response_data)
+                    
+            # If no known face is found, continue
+            continue
+
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": f"An error occurred: {str(e)}", "checks": check_count})
+
+'''
+
+            if label != 2 or value < 0.5:
+                new_otp = generate_unique_otp()
+                asyncio.run(send_telegram_message(new_otp, chat_id))
+                response_data = {
+                    "status": "unreliable picture",
+                    "signal": 0,
+                    "message": "Fake face detected!",
+                    "checks": check_count,
+                    "otp": new_otp
+                }
+                
+                print("Sending response:", response_data)  # Debugging log
+                return JsonResponse(response_data)
+
+            # Resize and convert image
+            imgS = cv2.resize(frame, (0, 0), None, 0.25, 0.25)
+            imgS = cv2.cvtColor(imgS, cv2.COLOR_BGR2RGB)
+
+            # Detect faces
+            faceCurrFrame = face_recognition.face_locations(imgS)
+            encodeCurrFrame = face_recognition.face_encodings(imgS, faceCurrFrame)
+
+            if not faceCurrFrame:
+                continue  # No face detected, keep checking
+
+            # Compare detected faces with known encodings
+            for encodeFace in encodeCurrFrame:
+                matches = face_recognition.compare_faces(encodeListKnown, encodeFace)
+                faceDis = face_recognition.face_distance(encodeListKnown, encodeFace)
+                matchIndex = np.argmin(faceDis)
+
+                if matches[matchIndex]:
+                    return JsonResponse({"status": "success", "signal": 1, "message": f"✅ Known face: {studentIds[matchIndex]}", "checks": check_count})
+                else:
+                    new_otp = generate_unique_otp()
+                    send_telegram_message(new_otp)
+                    return JsonResponse({"status":"unsuccessful","signal":0,"message":"intruder","otp":new_otp})
+
+
+            # If no known face is found, continue
+            continue
+
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": f"An error occurred: {str(e)}", "checks": check_count})
+
+
+'''
+
+
+
+
+
+
+
+'''
 @csrf_exempt
 def face_recognition_api(request):
     """Continuously capture images from ESP32 and process face recognition."""
@@ -118,7 +271,7 @@ def face_recognition_api(request):
 
     except Exception as e:
         return JsonResponse({"status": "error", "message": f"An error occurred: {str(e)}", "checks": check_count})
-
+'''
 
 '''
 Start your Django server:

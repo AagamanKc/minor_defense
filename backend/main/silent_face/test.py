@@ -22,25 +22,41 @@ SAMPLE_IMAGE_PATH = "./images/sample/"
 
 
 # 因为安卓端APK获取的视频流宽高比为3:4,为了与之一致，所以将宽高比限制为3:4
-def check_image(image):
+'''def check_image(image):
     height, width, channel = image.shape
     if width/height != 3/4:
         print("Image is not appropriate!!!\nHeight/Width should be 4/3.")
         return False
     else:
-        return True
+        return True'''
+
+def check_and_resize_image(image, target_size=(400, 300)):
+    """
+    Check if image has the correct aspect ratio (3:4),
+    if not, resize it to the target size (width, height).
+    Returns the resized image and True if successful.
+    """
+    height, width, channel = image.shape
+    aspect_ratio = width / height
+    expected_ratio = 3 / 4  # width/height ratio
+
+    if abs(aspect_ratio - expected_ratio) > 0.01:
+        print(f"Image aspect ratio {width}:{height} is not 3:4. Resizing to {target_size}...")
+        resized_image = cv2.resize(image, target_size)
+        return resized_image, True
+    else:
+        # Aspect ratio is fine, return original image
+        return image, True
+    
 
 
 def test(image, model_dir, device_id):
     model_test = AntiSpoofPredict(device_id)
     image_cropper = CropImage()
-
-    image = cv2.resize(image, (int(image.shape[0] * 3/4), image.shape[0]))
-
-    result = check_image(image)
-    if result is False:
-        return None, None  # Return None if image is not valid
-
+    image, result = check_and_resize_image(image, (400, 300))
+    if not result:
+        print("Image check failed.")
+        return
     image_bbox = model_test.get_bbox(image)
     prediction = np.zeros((1, 3))
     test_speed = 0
